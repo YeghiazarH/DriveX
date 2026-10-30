@@ -6,7 +6,7 @@ import pygame
 
 from game import Game
 from input_handler import InputHandler, Viewport
-from settings import FPS, GRASS, LOGICAL_HEIGHT, LOGICAL_WIDTH
+from settings import FPS, LOGICAL_HEIGHT, LOGICAL_WIDTH
 
 
 async def main():
@@ -14,7 +14,7 @@ async def main():
     pygame.init()
     pygame.display.set_caption("DriveX - Infinite Highway")
     window = pygame.display.set_mode(
-        (LOGICAL_WIDTH, LOGICAL_HEIGHT),
+        (402, 874),
         pygame.RESIZABLE,
     )
     logical_surface = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT))
@@ -25,7 +25,7 @@ async def main():
 
     while running:
         delta_time = min(clock.tick(FPS) / 1000.0, 0.05)
-        viewport = Viewport.fit(window.get_size())
+        viewport = Viewport.fill(window.get_size())
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -36,21 +36,19 @@ async def main():
                     (max(1, event.w), max(1, event.h)),
                     pygame.RESIZABLE,
                 )
-                viewport = Viewport.fit(window.get_size())
-            action = controls.handle_event(event, viewport, game.game_over)
-            if action == "restart":
-                game.sounds.play("restart")
-                game.reset()
+                viewport = Viewport.fill(window.get_size())
+            action = controls.handle_event(event, viewport, game.state)
+            if action in ("play", "restart"):
+                game.start()
             elif action:
                 game.handle_action(action)
 
         game.update(delta_time)
         game.draw(logical_surface)
 
-        window.fill(GRASS)
         scaled_size = (max(1, round(viewport.width)), max(1, round(viewport.height)))
         scaled_game = pygame.transform.smoothscale(logical_surface, scaled_size)
-        window.blit(scaled_game, (round(viewport.x), round(viewport.y)))
+        window.blit(scaled_game, (0, 0))
         pygame.display.flip()
         await asyncio.sleep(0)
 

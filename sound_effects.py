@@ -12,6 +12,7 @@ class SoundEffects:
         self.enabled = True
         self._sounds = {}
         self._ready = False
+        self._siren_channel = None
 
     def _ensure_ready(self):
         if self._ready:
@@ -25,6 +26,7 @@ class SoundEffects:
             "brake": self._make_tone(400, 170, 0.16, 0.18, rate),
             "restart": self._make_tone(300, 760, 0.22, 0.18, rate),
             "crash": self._make_crash(0.38, 0.28, rate),
+            "siren": self._make_siren(1.2, 0.13, rate),
         }
         self._ready = True
         return True
@@ -64,4 +66,28 @@ class SoundEffects:
 
     def toggle(self):
         self.enabled = not self.enabled
+        if not self.enabled:
+            self.stop_siren()
         return self.enabled
+
+    def start_siren(self):
+        if self.enabled and self._ensure_ready() and self._siren_channel is None:
+            self._siren_channel = self._sounds["siren"].play(loops=-1)
+
+    def stop_siren(self):
+        if self._siren_channel is not None:
+            self._siren_channel.stop()
+            self._siren_channel = None
+
+    @staticmethod
+    def _make_siren(duration, volume, sample_rate):
+        samples = array.array("h")
+        count = round(duration * sample_rate)
+        phase = 0.0
+        for index in range(count):
+            progress = index / max(1, count - 1)
+            sweep = (1 - math.cos(progress * 2 * math.pi)) / 2
+            frequency = 620 + sweep * 420
+            phase += 2 * math.pi * frequency / sample_rate
+            samples.append(round(math.sin(phase) * volume * 32767))
+        return pygame.mixer.Sound(buffer=samples.tobytes())

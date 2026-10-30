@@ -3,7 +3,9 @@
 import pygame
 
 from player import Player
+from police import PoliceChase
 from settings import (
+    ACTION_BUTTON_RECT,
     GRASS,
     GRASS_DARK,
     HORIZON_Y,
@@ -31,18 +33,32 @@ def road_bounds_at(y):
 
 class Game:
     def __init__(self):
-        self.font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.058))
-        self.small_font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.034))
-        self.large_font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.13))
+        self.font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.052))
+        self.small_font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.032))
+        self.large_font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.12))
+        self.title_font = pygame.font.Font(None, round(LOGICAL_WIDTH * 0.19))
         self.sounds = SoundEffects()
         self.reset()
 
     def reset(self):
+        self.sounds.stop_siren()
         self.player = Player()
         self.traffic = Traffic()
+        self.police = PoliceChase()
         self.distance = 0.0
         self.road_offset = 0.0
-        self.game_over = False
+        self.state = "ready"
+        self.game_over_reason = "traffic"
+
+    @property
+    def game_over(self):
+        return self.state == "game_over"
+
+    def start(self):
+        self.reset()
+        self.state = "playing"
+        self.sounds.play("restart")
+        self.sounds.start_siren()
 
     @property
     def score(self):
@@ -53,8 +69,10 @@ class Game:
             enabled = self.sounds.toggle()
             if enabled:
                 self.sounds.play("restart")
+                if self.state == "playing":
+                    self.sounds.start_siren()
             return
-        if self.game_over:
+        if self.state != "playing":
             return
         if action == "left":
             previous_lane = self.player.lane
@@ -74,24 +92,36 @@ class Game:
             self.sounds.play("brake")
 
     def update(self, delta_time):
-        if self.game_over:
+        if self.state != "playing":
             return
         self.player.update(delta_time)
         self.traffic.update(delta_time, self.player.speed)
+        self.police.update(delta_time, self.player)
         self.distance += self.player.speed * delta_time
         self.road_offset = (
             self.road_offset + self.player.speed * delta_time
         ) % (LANE_DASH_LENGTH + LANE_DASH_GAP)
         if self.traffic.collided_with(self.player.rect):
-            self.game_over = True
+            self.game_over_reason = "traffic"
+            self.state = "game_over"
+            self.sounds.stop_siren()
+            self.sounds.play("crash")
+        elif self.police.caught_player():
+            self.game_over_reason = "police"
+            self.state = "game_over"
+            self.sounds.stop_siren()
             self.sounds.play("crash")
 
     def draw(self, surface):
         self._draw_road(surface)
         self.traffic.draw(surface)
+        self.police.draw(surface)
         self.player.draw(surface)
-        self._draw_dashboard(surface)
-        if self.game_over:
+        if self.state == "playing":
+            self._draw_dashboard(surface)
+        elif self.state == "ready":
+            self._draw_ready(surface)
+        elif self.game_over:
             self._draw_game_over(surface)
 
     def _draw_road(self, surface):
@@ -180,23 +210,45 @@ class Game:
 
     def _draw_dashboard(self, surface):
         margin = LOGICAL_WIDTH * 0.055
-        top = LOGICAL_HEIGHT * 0.035
-        panel = pygame.Surface((LOGICAL_WIDTH, round(LOGICAL_HEIGHT * 0.18)), pygame.SRCALPHA)
-        panel.fill((11, 19, 18, 174))
-        surface.blit(panel, (0, 0))
-
-        score = self.font.render(f"DISTANCE   {self.score:06d}", True, WHITE)
-        speed = self.font.render(f"{int(self.player.speed)} km/h", True, (170, 239, 191))
-        surface.blit(score, (round(margin), round(top)))
-        surface.blit(speed, (round(margin), round(top + LOGICAL_HEIGHT * 0.048)))
-        hint = self.small_font.render(
-            "SWIPE   LANE  ·  UP  ACCELERATE  ·  DOWN  BRAKE", True, (220, 229, 218)
+        panel = pygame.Rect(
+            round(margin),
+            round(LOGICAL_HEIGHT * 0.025),
+            LOGICAL_WIDTH - round(margin * 2),
+            round(LOGICAL_HEIGHT * 0.15),
         )
-        surface.blit(hint, (round(margin), round(top + LOGICAL_HEIGHT * 0.096)))
+        self._draw_glass_panel(surface, panel, radius=round(LOGICAL_WIDTH * 0.035))
+
+        title = self.small_font.render("DRIVEX  /  HIGHWAY PATROL", True, (153, 212, 186))
+        surface.blit(title, (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.022)))
+        score = self.font.render(f"{self.score:06d}", True, WHITE)
+        score_label = self.small_font.render("DISTANCE", True, (191, 207, 202))
+        speed = self.font.render(f"{int(self.player.speed)}", True, (170, 239, 191))
+        speed_label = self.small_font.render("KM/H", True, (191, 207, 202))
+        surface.blit(score, (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.05)))
+        surface.blit(
+            score_label,
+            (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.102)),
+        )
+        speed_x = round(LOGICAL_WIDTH * 0.65)
+        surface.blit(speed, (speed_x, panel.y + round(LOGICAL_HEIGHT * 0.05)))
+        surface.blit(speed_label, (speed_x, panel.y + round(LOGICAL_HEIGHT * 0.102)))
+        hint = self.small_font.render(
+            "SWIPE TO STEER  ·  UP TO ACCELERATE  ·  DOWN TO BRAKE",
+            True,
+            (220, 229, 218),
+        )
+        hint_panel = pygame.Rect(
+            round(margin),
+            round(LOGICAL_HEIGHT * 0.186),
+            LOGICAL_WIDTH - round(margin * 2),
+            round(LOGICAL_HEIGHT * 0.053),
+        )
+        pygame.draw.rect(surface, (13, 24, 22), hint_panel, border_radius=round(LOGICAL_WIDTH * 0.018))
+        surface.blit(hint, hint.get_rect(center=hint_panel.center))
         self._draw_sound_button(surface)
 
     def _draw_sound_button(self, surface):
-        center = (round(LOGICAL_WIDTH * 0.91), round(LOGICAL_HEIGHT * 0.105))
+        center = (round(LOGICAL_WIDTH * 0.87), round(LOGICAL_HEIGHT * 0.105))
         radius = round(LOGICAL_WIDTH * 0.045)
         color = (54, 151, 100) if self.sounds.enabled else (87, 94, 94)
         pygame.draw.circle(surface, color, center, radius)
@@ -222,18 +274,118 @@ class Game:
                 max(2, radius // 9),
             )
 
+    def _draw_ready(self, surface):
+        self._draw_title_card(surface)
+        self._draw_action_button(surface, "PLAY")
+
     def _draw_game_over(self, surface):
+        self._draw_title_card(surface, game_over=True)
+        self._draw_action_button(surface, "TRY AGAIN")
+
+    def _draw_title_card(self, surface, game_over=False):
         shade = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
-        shade.fill((8, 13, 14, 190))
+        shade.fill((7, 15, 17, 162))
         surface.blit(shade, (0, 0))
         center_x = LOGICAL_WIDTH // 2
-        center_y = round(LOGICAL_HEIGHT * 0.48)
-        title = self.large_font.render("CRASH", True, WHITE)
-        result = self.font.render(f"DISTANCE   {self.score}", True, WHITE)
-        restart = self.small_font.render("TAP ANYWHERE TO DRIVE AGAIN", True, (190, 237, 204))
-        surface.blit(title, title.get_rect(center=(center_x, center_y)))
-        surface.blit(result, result.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.07)))
+        card = pygame.Rect(
+            round(LOGICAL_WIDTH * 0.075),
+            round(LOGICAL_HEIGHT * 0.31),
+            round(LOGICAL_WIDTH * 0.85),
+            round(LOGICAL_HEIGHT * 0.43),
+        )
+        self._draw_glass_panel(surface, card, radius=round(LOGICAL_WIDTH * 0.045))
+        eyebrow = self.small_font.render(
+            "PURSUIT ENDED" if game_over else "ENDLESS HIGHWAY RUN",
+            True,
+            (126, 223, 176),
+        )
+        title = self.title_font.render(
+            ("CAUGHT" if self.game_over_reason == "police" else "CRASHED")
+            if game_over else "DRIVEX",
+            True,
+            WHITE,
+        )
+        subtitle_text = (
+            "The highway patrol caught up."
+            if game_over and self.game_over_reason == "police"
+            else "You hit traffic. Take another run."
+            if game_over
+            else "DODGE TRAFFIC. OUTRUN THE PATROL."
+        )
+        subtitle = self.small_font.render(subtitle_text, True, (196, 214, 208))
+        center_y = card.y + round(card.height * 0.2)
+        surface.blit(eyebrow, eyebrow.get_rect(center=(center_x, center_y)))
+        surface.blit(title, title.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.075)))
         surface.blit(
-            restart,
-            restart.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.14)),
+            subtitle,
+            subtitle.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.15)),
+        )
+        if game_over:
+            result = self.font.render(f"DISTANCE  {self.score:06d}", True, (174, 237, 193))
+            surface.blit(
+                result,
+                result.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.2)),
+            )
+        else:
+            self._draw_control_chips(surface, center_x, center_y + LOGICAL_HEIGHT * 0.18)
+        self._draw_sound_button(surface)
+
+    def _draw_control_chips(self, surface, center_x, y):
+        labels = ("←  LANE", "↑  GAS", "↓  BRAKE")
+        chip_width = round(LOGICAL_WIDTH * 0.24)
+        gap = round(LOGICAL_WIDTH * 0.025)
+        total_width = chip_width * len(labels) + gap * (len(labels) - 1)
+        start_x = center_x - total_width // 2
+        for index, label in enumerate(labels):
+            rect = pygame.Rect(
+                start_x + index * (chip_width + gap),
+                round(y),
+                chip_width,
+                round(LOGICAL_HEIGHT * 0.055),
+            )
+            pygame.draw.rect(surface, (27, 46, 45), rect, border_radius=round(chip_width * 0.18))
+            text = self.small_font.render(label, True, (215, 232, 223))
+            surface.blit(text, text.get_rect(center=rect.center))
+
+    def _draw_action_button(self, surface, label):
+        rect = pygame.Rect(
+            round(ACTION_BUTTON_RECT[0]),
+            round(ACTION_BUTTON_RECT[1]),
+            round(ACTION_BUTTON_RECT[2]),
+            round(ACTION_BUTTON_RECT[3]),
+        )
+        pygame.draw.rect(
+            surface,
+            (14, 73, 52),
+            rect.move(0, round(LOGICAL_HEIGHT * 0.012)),
+            border_radius=round(LOGICAL_WIDTH * 0.04),
+        )
+        pygame.draw.rect(surface, (54, 211, 132), rect, border_radius=round(LOGICAL_WIDTH * 0.04))
+        pygame.draw.rect(
+            surface,
+            (149, 255, 196),
+            rect,
+            width=max(2, round(LOGICAL_WIDTH * 0.004)),
+            border_radius=round(LOGICAL_WIDTH * 0.04),
+        )
+        text = self.font.render(label, True, (8, 35, 25))
+        surface.blit(text, text.get_rect(center=rect.center))
+
+    @staticmethod
+    def _draw_glass_panel(surface, rect, radius):
+        pygame.draw.rect(surface, (8, 18, 19), rect, border_radius=radius)
+        inner = rect.inflate(-6, -6)
+        pygame.draw.rect(
+            surface,
+            (20, 34, 34),
+            inner,
+            width=max(1, radius // 8),
+            border_radius=max(2, radius - 4),
+        )
+        pygame.draw.line(
+            surface,
+            (71, 109, 91),
+            (inner.left + radius, inner.top),
+            (inner.right - radius, inner.top),
+            max(2, radius // 10),
         )

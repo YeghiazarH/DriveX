@@ -7,8 +7,12 @@ import pygame
 from car_drawing import draw_car
 from settings import (
     LANE_CENTERS,
+    LANE_COUNT,
+    HORIZON_Y,
     LOGICAL_HEIGHT,
     LOGICAL_WIDTH,
+    ROAD_LEFT,
+    ROAD_RIGHT,
     TRAFFIC_HEIGHT,
     TRAFFIC_RED,
     TRAFFIC_WIDTH,
@@ -58,8 +62,7 @@ class Traffic:
 
     def _spawn_car(self):
         open_lanes = [
-            lane
-            for lane in range(len(LANE_CENTERS))
+            lane for lane in range(LANE_COUNT)
             if all(car.lane != lane or car.y > 150 for car in self.cars)
         ]
         if not open_lanes:
@@ -92,11 +95,9 @@ class Traffic:
 
 
 def lane_center_at(lane, y):
-    from settings import ROAD_LEFT, ROAD_RIGHT, HORIZON_Y
-
     road_progress = max(
         0.0, min(1.0, (y - HORIZON_Y) / (LOGICAL_HEIGHT - HORIZON_Y))
     )
     road_width = (ROAD_RIGHT - ROAD_LEFT) * (0.66 + road_progress * 0.34)
     left = LOGICAL_WIDTH / 2 - road_width / 2
-    return left + road_width * (lane + 0.5) / 3
+    return left + road_width * (lane + 0.5) / LANE_COUNT
