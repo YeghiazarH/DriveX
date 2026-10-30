@@ -25,8 +25,6 @@ TRAFFIC_RED = (198, 53, 49)
 WHITE = (255, 255, 255)
 INK = (24, 29, 34)
 
-PLAYER_WIDTH = ROAD_WIDTH * 0.26
-PLAYER_HEIGHT = PLAYER_WIDTH * 1.72
 PLAYER_Y = LOGICAL_HEIGHT * 0.67
 MIN_SPEED = 150.0
 MAX_SPEED = 390.0
@@ -65,3 +63,7 @@ def lane_center_at(lane, y):
 
 def vehicle_scale_at(y):
     return 0.52 + road_progress_at(y) * 0.48
+
+
+PLAYER_WIDTH = TRAFFIC_WIDTH * vehicle_scale_at(PLAYER_Y)
+PLAYER_HEIGHT = TRAFFIC_HEIGHT * vehicle_scale_at(PLAYER_Y)

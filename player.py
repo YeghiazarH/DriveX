@@ -28,11 +28,13 @@ class Player:
 
     @property
     def rect(self):
+        collision_width = PLAYER_WIDTH * 0.78
+        collision_height = PLAYER_HEIGHT * 0.9
         return pygame.Rect(
-            round(self.x - PLAYER_WIDTH / 2),
-            PLAYER_Y,
-            PLAYER_WIDTH,
-            PLAYER_HEIGHT,
+            round(self.x - collision_width / 2),
+            round(PLAYER_Y + (PLAYER_HEIGHT - collision_height) / 2),
+            round(collision_width),
+            round(collision_height),
         )
 
     def change_lane(self, direction):
