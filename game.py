@@ -4,6 +4,7 @@ import pygame
 
 from player import Player
 from police import PoliceChase
+from pickups import NitroPickups
 from settings import (
     ACTION_BUTTON_RECT,
     GRASS,
@@ -14,10 +15,21 @@ from settings import (
     LANE_MARKER,
     LOGICAL_HEIGHT,
     LOGICAL_WIDTH,
+    MAX_NITRO_CHARGES,
+    NITRO_BUTTON_RECT,
+    NITRO_DURATION,
+    NITRO_SPEED_MULTIPLIER,
+    LANE_WIDTH,
+    PLAYER_HEIGHT,
+    PLAYER_WIDTH,
+    PLAYER_Y,
     ROAD,
     ROAD_EDGE,
+    TRAFFIC_HEIGHT,
+    TRAFFIC_WIDTH,
     WHITE,
     road_bounds_at,
+    vehicle_scale_at,
 )
 from sound_effects import SoundEffects
 from traffic import Traffic
@@ -37,9 +49,15 @@ class Game:
         self.player = Player()
         self.traffic = Traffic()
         self.police = PoliceChase()
+        self.pickups = NitroPickups()
         self.distance = 0.0
+        self.bonus_score = 0
         self.road_offset = 0.0
         self.roadside_offset = 0.0
+        self.boost_remaining = 0.0
+        self.nitro_charges = 0
+        self.near_miss_timer = 0.0
+        self.near_miss_text = ""
         self.state = "ready"
         self.game_over_reason = "traffic"
 
@@ -55,7 +73,11 @@ class Game:
 
     @property
     def score(self):
-        return int(self.distance / 10)
+        return int(self.distance / 10) + self.bonus_score
+
+    @property
+    def boosting(self):
+        return self.boost_remaining > 0
 
     def handle_action(self, action):
         if action == "toggle_sound":
@@ -67,7 +89,9 @@ class Game:
             return
         if self.state != "playing":
             return
-        if action == "left":
+        if action == "boost":
+            self._activate_boost()
+        elif action == "left":
             previous_lane = self.player.lane
             self.player.change_lane(-1)
             if previous_lane != self.player.lane:
@@ -84,10 +108,21 @@ class Game:
             self.player.brake()
             self.sounds.play("brake")
 
+    def _activate_boost(self):
+        if self.nitro_charges <= 0 or self.boosting:
+            return
+        self.nitro_charges -= 1
+        self.boost_remaining = NITRO_DURATION
+        self.sounds.play("nitro")
+
     def update(self, delta_time):
         if self.state == "game_over":
             return
-        world_speed = self.player.speed if self.state == "playing" else 92.0
+        if self.boosting:
+            self.boost_remaining = max(0.0, self.boost_remaining - delta_time)
+        self.near_miss_timer = max(0.0, self.near_miss_timer - delta_time)
+        multiplier = NITRO_SPEED_MULTIPLIER if self.boosting else 1.0
+        world_speed = self.player.speed * multiplier if self.state == "playing" else 92.0
         self.road_offset = (
             self.road_offset + world_speed * delta_time
         ) % (LANE_DASH_LENGTH + LANE_DASH_GAP)
@@ -96,9 +131,19 @@ class Game:
             return
 
         self.player.update(delta_time)
-        self.traffic.update(delta_time, self.player.speed)
-        self.police.update(delta_time, self.player)
-        self.distance += self.player.speed * delta_time
+        self.traffic.update(delta_time, world_speed)
+        self.pickups.update(delta_time, world_speed, self.traffic)
+        self.police.update(delta_time, self.player, self.boosting)
+        self.distance += world_speed * delta_time
+        collected = self.pickups.collect(self.player.rect)
+        if collected:
+            self.nitro_charges = min(
+                MAX_NITRO_CHARGES,
+                self.nitro_charges + collected,
+            )
+            self.bonus_score += 100 * collected
+            self.sounds.play("pickup")
+
         if self.traffic.collided_with(self.player.rect):
             self.game_over_reason = "traffic"
             self.state = "game_over"
@@ -109,14 +154,45 @@ class Game:
             self.state = "game_over"
             self.sounds.stop_siren()
             self.sounds.play("crash")
+        else:
+            self._check_near_misses()
+
+    def _check_near_misses(self):
+        player_left = self.player.x - PLAYER_WIDTH / 2
+        player_right = self.player.x + PLAYER_WIDTH / 2
+        for car in self.traffic.cars:
+            if car.near_miss_awarded or abs(car.lane - self.player.lane) != 1:
+                continue
+            car_width = TRAFFIC_WIDTH * vehicle_scale_at(car.y) * car.width_scale
+            car_x = car.rect.centerx
+            horizontal_gap = max(
+                player_left - (car_x + car_width / 2),
+                car_x - car_width / 2 - player_right,
+                0,
+            )
+            close_pass = horizontal_gap < LANE_WIDTH * 0.55
+            vertical_overlap = (
+                car.y + TRAFFIC_HEIGHT * 0.7 >= PLAYER_Y
+                and car.y <= PLAYER_Y + PLAYER_HEIGHT * 0.35
+            )
+            if close_pass and vertical_overlap:
+                car.near_miss_awarded = True
+                self.bonus_score += 250
+                self.near_miss_timer = 1.35
+                self.near_miss_text = "NEAR MISS  +250"
+                self.sounds.play("near_miss")
 
     def draw(self, surface):
         self._draw_road(surface)
         self.traffic.draw(surface)
+        self.pickups.draw(surface)
         self.police.draw(surface)
-        self.player.draw(surface)
+        self.player.draw(surface, boosted=self.boosting, animation_time=self.distance)
         if self.state == "playing":
             self._draw_dashboard(surface)
+            self._draw_nitro_button(surface)
+            if self.near_miss_timer:
+                self._draw_near_miss(surface)
         elif self.state == "ready":
             self._draw_ready(surface)
         elif self.game_over:
@@ -359,7 +435,7 @@ class Game:
         title = self.small_font.render("DRIVEX  /  HIGHWAY PATROL", True, (153, 212, 186))
         surface.blit(title, (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.022)))
         score = self.font.render(f"{self.score:06d}", True, WHITE)
-        score_label = self.small_font.render("DISTANCE", True, (191, 207, 202))
+        score_label = self.small_font.render("SCORE", True, (191, 207, 202))
         speed = self.font.render(f"{int(self.player.speed)}", True, (170, 239, 191))
         speed_label = self.small_font.render("KM/H", True, (191, 207, 202))
         surface.blit(score, (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.05)))
@@ -412,6 +488,53 @@ class Game:
                 max(2, radius // 9),
             )
 
+    def _draw_nitro_button(self, surface):
+        rect = pygame.Rect(
+            round(NITRO_BUTTON_RECT[0]),
+            round(NITRO_BUTTON_RECT[1]),
+            round(NITRO_BUTTON_RECT[2]),
+            round(NITRO_BUTTON_RECT[3]),
+        )
+        ready = self.nitro_charges > 0 and not self.boosting
+        fill = (15, 103, 119) if ready or self.boosting else (28, 42, 43)
+        edge = (88, 229, 245) if ready or self.boosting else (73, 91, 87)
+        pygame.draw.rect(surface, fill, rect, border_radius=round(rect.height * 0.28))
+        pygame.draw.rect(
+            surface,
+            edge,
+            rect,
+            width=max(2, round(LOGICAL_WIDTH * 0.004)),
+            border_radius=round(rect.height * 0.28),
+        )
+        label = (
+            f"BOOST  {self.boost_remaining:0.1f}s"
+            if self.boosting
+            else f"NITRO  x{self.nitro_charges}"
+        )
+        text = self.font.render(label, True, WHITE if ready or self.boosting else (158, 174, 168))
+        surface.blit(text, text.get_rect(center=rect.center))
+        if self.boosting:
+            track = pygame.Rect(
+                rect.x + round(rect.width * 0.12),
+                rect.bottom - round(rect.height * 0.15),
+                round(rect.width * 0.76),
+                max(4, round(rect.height * 0.06)),
+            )
+            pygame.draw.rect(surface, (13, 49, 58), track, border_radius=max(2, track.height // 2))
+            progress = self.boost_remaining / NITRO_DURATION
+            fill_rect = track.copy()
+            fill_rect.width = round(track.width * progress)
+            pygame.draw.rect(surface, (130, 248, 255), fill_rect, border_radius=max(2, track.height // 2))
+
+    def _draw_near_miss(self, surface):
+        alpha = min(1.0, self.near_miss_timer / 0.3)
+        color = (round(105 + 100 * alpha), round(223 + 32 * alpha), 255)
+        text = self.font.render(self.near_miss_text, True, color)
+        rect = text.get_rect(center=(LOGICAL_WIDTH // 2, round(LOGICAL_HEIGHT * 0.27)))
+        panel = rect.inflate(round(LOGICAL_WIDTH * 0.08), round(LOGICAL_HEIGHT * 0.025))
+        pygame.draw.rect(surface, (13, 39, 43), panel, border_radius=round(LOGICAL_WIDTH * 0.025))
+        surface.blit(text, rect)
+
     def _draw_ready(self, surface):
         self._draw_title_card(surface)
         self._draw_action_button(surface, "PLAY")
@@ -459,7 +582,7 @@ class Game:
             subtitle.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.15)),
         )
         if game_over:
-            result = self.font.render(f"DISTANCE  {self.score:06d}", True, (174, 237, 193))
+            result = self.font.render(f"SCORE  {self.score:06d}", True, (174, 237, 193))
             surface.blit(
                 result,
                 result.get_rect(center=(center_x, center_y + LOGICAL_HEIGHT * 0.2)),

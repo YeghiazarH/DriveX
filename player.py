@@ -52,7 +52,28 @@ class Player:
         blend = min(1.0, delta_time * 12.0)
         self.x += (target_x - self.x) * blend
 
-    def draw(self, surface):
+    def draw(self, surface, boosted=False, animation_time=0.0):
+        if boosted:
+            flicker = 0.85 + (int(animation_time * 24) % 4) * 0.05
+            tip_y = PLAYER_Y + PLAYER_HEIGHT * flicker
+            for offset, color in (
+                (-PLAYER_WIDTH * 0.22, (48, 205, 255)),
+                (PLAYER_WIDTH * 0.22, (48, 205, 255)),
+                (0, (210, 249, 255)),
+            ):
+                tip = (round(self.x + offset), round(tip_y + PLAYER_HEIGHT * 0.11))
+                base_y = round(PLAYER_Y + PLAYER_HEIGHT * 0.93)
+                base_x = round(self.x + offset)
+                half_width = round(PLAYER_WIDTH * (0.055 if offset else 0.07))
+                pygame.draw.polygon(
+                    surface,
+                    color,
+                    [
+                        (base_x - half_width, base_y),
+                        (base_x + half_width, base_y),
+                        tip,
+                    ],
+                )
         draw_car(
             surface,
             self.x,

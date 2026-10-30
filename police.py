@@ -37,13 +37,19 @@ class PoliceChase:
             round(TRAFFIC_HEIGHT * scale * 0.9),
         )
 
-    def update(self, delta_time, player):
+    def update(self, delta_time, player, boosting=False):
         self.elapsed += delta_time
         self.target_lane = player.lane
         target_x = player.x
         self.x += (target_x - self.x) * min(1.0, delta_time * 2.8)
         closing_speed = TRAFFIC_HEIGHT * (0.0045 + min(self.elapsed / 120, 0.003))
-        self.gap = max(0.0, self.gap - closing_speed * delta_time)
+        if boosting:
+            self.gap = min(
+                TRAFFIC_HEIGHT * 1.8,
+                self.gap + closing_speed * 1.7 * delta_time,
+            )
+        else:
+            self.gap = max(0.0, self.gap - closing_speed * delta_time)
 
     def caught_player(self):
         return self.gap <= 0

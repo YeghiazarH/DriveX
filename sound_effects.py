@@ -25,6 +25,9 @@ class SoundEffects:
             "accelerate": self._make_tone(230, 620, 0.14, 0.2, rate),
             "brake": self._make_tone(400, 170, 0.16, 0.18, rate),
             "restart": self._make_tone(300, 760, 0.22, 0.18, rate),
+            "pickup": self._make_tone(780, 1240, 0.16, 0.2, rate),
+            "nitro": self._make_tone(170, 920, 0.32, 0.24, rate),
+            "near_miss": self._make_tone(980, 1480, 0.11, 0.16, rate),
             "crash": self._make_crash(0.38, 0.28, rate),
             "siren": self._make_siren(1.2, 0.13, rate),
         }

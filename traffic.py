@@ -24,6 +24,7 @@ class TrafficCar:
         self.x = LANE_CENTERS[lane]
         self.y = float(y)
         self.color = color
+        self.near_miss_awarded = False
         self.width_scale, self.height_scale = random.choice(
             ((0.94, 0.88), (1.0, 1.0), (0.96, 1.1), (1.05, 0.96))
         )

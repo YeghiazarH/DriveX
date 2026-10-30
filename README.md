@@ -6,6 +6,8 @@ DriveX is an infinite, portrait-view highway driving game written in Python with
 
 - Drag left or right to change lanes.
 - Drag up to accelerate; drag down to brake.
+- Collect glowing cyan nitro cells, then tap **NITRO** to burst forward and open a gap on the police.
+- Thread past traffic in a neighboring lane for a **near miss** bonus; pickups and near misses add bonus points to your score.
 - Tap the speaker button in the top-right to mute or enable sound effects.
 - Select **Play** to begin; after a crash, choose **Try Again** to restart.
 - Keep an eye on the police cruiser closing in behind you.
@@ -19,7 +21,8 @@ On desktop, click and hold the mouse button, move, then release to make a swipe.
 | `main.py` | Async Pygame entry point and responsive display scaling |
 | `settings.py` | Logical screen, road, color, and vehicle settings |
 | `player.py` | Player car, lane movement, speed, and drawing |
-| `traffic.py` | Random traffic spawning, movement, and collision checks |
+| `traffic.py` | Sparse traffic waves, movement, near-miss tracking, and collision checks |
+| `pickups.py` | Nitro-cell spawning, collection, and drawing |
 | `car_drawing.py` | Reusable detailed top-down car illustration |
 | `police.py` | Police cruiser pursuit and catch-up behavior |
 | `sound_effects.py` | Generated sound effects, with no external audio files |

@@ -4,7 +4,12 @@ from dataclasses import dataclass
 
 import pygame
 
-from settings import ACTION_BUTTON_RECT, LOGICAL_HEIGHT, LOGICAL_WIDTH
+from settings import (
+    ACTION_BUTTON_RECT,
+    LOGICAL_HEIGHT,
+    LOGICAL_WIDTH,
+    NITRO_BUTTON_RECT,
+)
 
 
 @dataclass(frozen=True)
@@ -117,6 +122,14 @@ class InputHandler:
                 and start[1] < LOGICAL_HEIGHT * 0.13
             ):
                 return "toggle_sound"
+            nitro_button = pygame.Rect(
+                round(NITRO_BUTTON_RECT[0]),
+                round(NITRO_BUTTON_RECT[1]),
+                round(NITRO_BUTTON_RECT[2]),
+                round(NITRO_BUTTON_RECT[3]),
+            )
+            if game_state == "playing" and nitro_button.collidepoint(start):
+                return "boost"
             if game_state in ("ready", "game_over"):
                 button = pygame.Rect(
                     round(ACTION_BUTTON_RECT[0]),
