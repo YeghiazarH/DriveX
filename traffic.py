@@ -45,7 +45,7 @@ class TrafficCar:
 
     def update(self, delta_time, player_speed):
         # Cars approach from ahead and move down the screen relative to the player.
-        self.y += (115.0 + player_speed * 0.34) * delta_time
+        self.y += (145.0 + player_speed * 0.42) * delta_time
 
     def draw(self, surface):
         scale = vehicle_scale_at(self.y)
@@ -62,11 +62,11 @@ class TrafficCar:
 class Traffic:
     def __init__(self):
         self.cars = []
-        self.spawn_timer = 1.8
+        self.spawn_timer = 0.9
 
     def reset(self):
         self.cars.clear()
-        self.spawn_timer = 1.8
+        self.spawn_timer = 0.9
 
     def _spawn_car(self, lane):
         spawn_y = HORIZON_Y - TRAFFIC_HEIGHT * 0.05
@@ -86,24 +86,23 @@ class Traffic:
         occupied = {
             car.lane
             for car in self.cars
-            if car.y < spawn_y + TRAFFIC_HEIGHT * 2.2
+            if abs(car.y - spawn_y) < TRAFFIC_HEIGHT * 1.65
         }
         open_lanes = [lane for lane in range(LANE_COUNT) if lane not in occupied]
         if len(open_lanes) < 2:
             return
 
-        first_lane = random.choice(open_lanes)
-        self._spawn_car(first_lane)
-
-        remaining_lanes = [lane for lane in open_lanes if lane != first_lane]
-        if len(open_lanes) == LANE_COUNT and random.random() < 0.22:
-            self._spawn_car(random.choice(remaining_lanes))
+        car_count = 2 if len(open_lanes) == LANE_COUNT and random.random() < 0.78 else 1
+        for lane in random.sample(open_lanes, car_count):
+            self._spawn_car(lane)
 
     def update(self, delta_time, player_speed):
         self.spawn_timer -= delta_time
         if self.spawn_timer <= 0:
             self._spawn_wave()
-            self.spawn_timer = random.uniform(2.4, 3.2)
+            relative_speed = 145.0 + player_speed * 0.42
+            spacing = random.uniform(1.55, 1.85) * TRAFFIC_HEIGHT
+            self.spawn_timer = spacing / relative_speed
 
         for car in self.cars:
             car.update(delta_time, player_speed)

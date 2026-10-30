@@ -25,6 +25,7 @@ from settings import (
     PLAYER_Y,
     ROAD,
     ROAD_EDGE,
+    SCORE_MULTIPLIERS,
     TRAFFIC_HEIGHT,
     TRAFFIC_WIDTH,
     WHITE,
@@ -55,7 +56,8 @@ class Game:
         self.road_offset = 0.0
         self.roadside_offset = 0.0
         self.boost_remaining = 0.0
-        self.nitro_charges = 0
+        self.nitro_charges = 1
+        self._last_score_multiplier = 1
         self.near_miss_timer = 0.0
         self.near_miss_text = ""
         self.state = "ready"
@@ -73,7 +75,19 @@ class Game:
 
     @property
     def score(self):
+        return self.raw_score * self.score_multiplier
+
+    @property
+    def raw_score(self):
         return int(self.distance / 10) + self.bonus_score
+
+    @property
+    def score_multiplier(self):
+        multiplier = 1
+        for threshold, value in SCORE_MULTIPLIERS:
+            if self.raw_score >= threshold:
+                multiplier = value
+        return multiplier
 
     @property
     def boosting(self):
@@ -156,6 +170,18 @@ class Game:
             self.sounds.play("crash")
         else:
             self._check_near_misses()
+        self._update_score_milestones()
+
+    def _update_score_milestones(self):
+        multiplier = self.score_multiplier
+        if multiplier <= self._last_score_multiplier:
+            return
+        gained = multiplier - self._last_score_multiplier
+        self.nitro_charges = min(MAX_NITRO_CHARGES, self.nitro_charges + gained)
+        self._last_score_multiplier = multiplier
+        self.near_miss_timer = 1.8
+        self.near_miss_text = f"{multiplier}X MULTIPLIER  +{gained} NITRO"
+        self.sounds.play("pickup")
 
     def _check_near_misses(self):
         player_left = self.player.x - PLAYER_WIDTH / 2
@@ -192,7 +218,7 @@ class Game:
             self._draw_dashboard(surface)
             self._draw_nitro_button(surface)
             if self.near_miss_timer:
-                self._draw_near_miss(surface)
+                self._draw_award_toast(surface)
         elif self.state == "ready":
             self._draw_ready(surface)
         elif self.game_over:
@@ -435,7 +461,11 @@ class Game:
         title = self.small_font.render("DRIVEX  /  HIGHWAY PATROL", True, (153, 212, 186))
         surface.blit(title, (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.022)))
         score = self.font.render(f"{self.score:06d}", True, WHITE)
-        score_label = self.small_font.render("SCORE", True, (191, 207, 202))
+        score_label = self.small_font.render(
+            f"SCORE  x{self.score_multiplier}",
+            True,
+            (191, 207, 202),
+        )
         speed = self.font.render(f"{int(self.player.speed)}", True, (170, 239, 191))
         speed_label = self.small_font.render("KM/H", True, (191, 207, 202))
         surface.blit(score, (panel.x + round(margin * 0.45), panel.y + round(LOGICAL_HEIGHT * 0.05)))
@@ -526,7 +556,7 @@ class Game:
             fill_rect.width = round(track.width * progress)
             pygame.draw.rect(surface, (130, 248, 255), fill_rect, border_radius=max(2, track.height // 2))
 
-    def _draw_near_miss(self, surface):
+    def _draw_award_toast(self, surface):
         alpha = min(1.0, self.near_miss_timer / 0.3)
         color = (round(105 + 100 * alpha), round(223 + 32 * alpha), 255)
         text = self.font.render(self.near_miss_text, True, color)

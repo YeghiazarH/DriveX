@@ -1,16 +1,17 @@
 # DriveX
 
-DriveX is an infinite, portrait-view highway driving game written in Python with Pygame CE. The 900 × 1956 logical canvas uses the same tall aspect ratio as an iPhone 16 display (402 × 874 CSS pixels). The web page keeps the game centered and full-height on phones, while desktop browsers get a centered portrait game view. Cars scale into the distance and feature distinct paint colors; sparse traffic waves contain at most two cars and always leave a lane open. Roadside trees, grass, reflectors, and lane markings scroll with the road. Detailed cars, scenery, and sound effects are generated in code; no image or audio assets are needed.
+DriveX is an infinite, portrait-view highway driving game written in Python with Pygame CE. The 900 × 1956 logical canvas uses the same tall aspect ratio as an iPhone 16 display (402 × 874 CSS pixels). The web page keeps the game centered and full-height on phones, while desktop browsers get a centered portrait game view. Cars scale into the distance and feature distinct paint colors; denser traffic waves can contain two cars but preserve a clear lane and enough space to steer through. Roadside trees, grass, reflectors, and lane markings scroll with the road. Detailed cars, scenery, and sound effects are generated in code; no image or audio assets are needed.
 
 ## Controls
 
 - Drag left or right to change lanes.
 - Drag up to accelerate; drag down to brake.
-- Collect glowing cyan nitro cells, then tap **NITRO** to burst forward and open a gap on the police.
+- Collect frequent glowing cyan nitro cells, then tap **NITRO** to burst forward and open a gap on the police. Start with one charge and store up to five.
+- Earn score multipliers at 2,500, 7,000, and 15,000 base points; each new tier also awards nitro.
 - Thread past traffic in a neighboring lane for a **near miss** bonus; pickups and near misses add bonus points to your score.
 - Tap the speaker button in the top-right to mute or enable sound effects.
 - Select **Play** to begin; after a crash, choose **Try Again** to restart.
-- Keep an eye on the police cruiser closing in behind you.
+- Keep an eye on the police cruiser: it steers between lanes and varies its speed as it pursues you.
 
 On desktop, click and hold the mouse button, move, then release to make a swipe. Touch screens use the same drag gestures. Short synthesized sounds play for lane changes, acceleration, braking, restarting, and collisions. On mobile browsers, sound starts after your first gesture so it follows the browser's audio policy.
 
@@ -21,7 +22,7 @@ On desktop, click and hold the mouse button, move, then release to make a swipe.
 | `main.py` | Async Pygame entry point and responsive display scaling |
 | `settings.py` | Logical screen, road, color, and vehicle settings |
 | `player.py` | Player car, lane movement, speed, and drawing |
-| `traffic.py` | Sparse traffic waves, movement, near-miss tracking, and collision checks |
+| `traffic.py` | Denser traffic waves with a guaranteed open lane, near-miss tracking, and collision checks |
 | `pickups.py` | Nitro-cell spawning, collection, and drawing |
 | `car_drawing.py` | Reusable detailed top-down car illustration |
 | `police.py` | Police cruiser pursuit and catch-up behavior |

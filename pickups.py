@@ -55,11 +55,11 @@ class NitroPickup:
 class NitroPickups:
     def __init__(self):
         self.items = []
-        self.spawn_timer = random.uniform(3.8, 5.2)
+        self.spawn_timer = random.uniform(2.2, 3.2)
 
     def reset(self):
         self.items.clear()
-        self.spawn_timer = random.uniform(3.8, 5.2)
+        self.spawn_timer = random.uniform(2.2, 3.2)
 
     def update(self, delta_time, world_speed, traffic):
         self.spawn_timer -= delta_time
@@ -77,7 +77,7 @@ class NitroPickups:
             ]
             if lanes:
                 self.items.append(NitroPickup(random.choice(lanes), HORIZON_Y - 15))
-            self.spawn_timer = random.uniform(5.5, 8.0)
+            self.spawn_timer = random.uniform(3.2, 4.8)
 
         for pickup in self.items:
             pickup.update(delta_time, world_speed)
