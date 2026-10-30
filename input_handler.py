@@ -54,7 +54,7 @@ class Viewport:
 
 
 class InputHandler:
-    SWIPE_THRESHOLD = 28
+    SWIPE_THRESHOLD = LOGICAL_WIDTH * 0.04
 
     def __init__(self):
         self._start = None
@@ -109,6 +109,11 @@ class InputHandler:
         delta_x = end[0] - start[0]
         delta_y = end[1] - start[1]
         if max(abs(delta_x), abs(delta_y)) < self.SWIPE_THRESHOLD:
+            if (
+                start[0] > LOGICAL_WIDTH * 0.79
+                and start[1] < LOGICAL_HEIGHT * 0.13
+            ):
+                return "toggle_sound"
             return None
         if abs(delta_x) > abs(delta_y):
             return "left" if delta_x < 0 else "right"

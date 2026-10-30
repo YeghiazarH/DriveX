@@ -1,14 +1,15 @@
 # DriveX
 
-DriveX is an infinite, portrait-view highway driving game written in Python with Pygame CE. It uses only Pygame drawing primitives, so there are no image or sound assets to download. The logical game view is 400 × 600 and is scaled proportionally to fit the resizable window or browser canvas.
+DriveX is an infinite, portrait-view highway driving game written in Python with Pygame CE. The 900 × 1956 logical canvas uses the same tall aspect ratio as an iPhone 16 display (402 × 874 CSS pixels) and scales proportionally to fit other phones and resizable desktop windows. Cars, road scenery, and sound effects are generated in code; no image or audio assets are needed.
 
 ## Controls
 
 - Drag left or right to change lanes.
 - Drag up to accelerate; drag down to brake.
+- Tap the speaker button in the top-right to mute or enable sound effects.
 - After a collision, tap or click anywhere to restart.
 
-On desktop, click and hold the mouse button, move, then release to make a swipe. Touch screens use the same drag gestures.
+On desktop, click and hold the mouse button, move, then release to make a swipe. Touch screens use the same drag gestures. Short synthesized sounds play for lane changes, acceleration, braking, restarting, and collisions. On mobile browsers, sound starts after your first gesture so it follows the browser's audio policy.
 
 ## Project files
 
@@ -18,6 +19,8 @@ On desktop, click and hold the mouse button, move, then release to make a swipe.
 | `settings.py` | Logical screen, road, color, and vehicle settings |
 | `player.py` | Player car, lane movement, speed, and drawing |
 | `traffic.py` | Random traffic spawning, movement, and collision checks |
+| `car_drawing.py` | Reusable detailed top-down car illustration |
+| `sound_effects.py` | Generated sound effects, with no external audio files |
 | `input_handler.py` | Mouse/touch swipe detection and viewport coordinate mapping |
 | `game.py` | Game state, road animation, score, and rendering |
 
@@ -40,14 +43,14 @@ If PyCharm's terminal uses a different interpreter than the project interpreter,
 From the project root, run:
 
 ```bash
-python -m pygbag --build --width 400 --height 600 --ume_block 0 .
+python -m pygbag --build --width 402 --height 874 --ume_block 0 .
 ```
 
 Pygbag writes the static website to **`build/web/`**. That folder contains the web entry page and generated game files; publish its contents, not the Python source folder. The `build/` directory is ignored by Git because the workflow generates it on every deployment.
 
 ## Publish on GitHub Pages
 
-This project includes `.github/workflows/pages.yml`. It installs Python 3.12 and the packages in `requirements.txt`, runs the same Pygbag build command, and publishes **`build/web/`** as the Pages artifact. The build sets the browser canvas to the game's portrait dimensions and disables Pygbag's user-media engagement gate (this game does not use audio or other media).
+This project includes `.github/workflows/pages.yml`. It installs Python 3.12 and the packages in `requirements.txt`, runs the same Pygbag build command, and publishes **`build/web/`** as the Pages artifact. It uses an iPhone 16-sized portrait canvas and starts the game without an initial media gate; the first touch enables browser audio for the synthesized effects.
 
 1. Create a GitHub repository and push this project to its `main` branch.
 2. In the repository, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**.

@@ -4,9 +4,11 @@ import random
 
 import pygame
 
+from car_drawing import draw_car
 from settings import (
     LANE_CENTERS,
     LOGICAL_HEIGHT,
+    LOGICAL_WIDTH,
     TRAFFIC_HEIGHT,
     TRAFFIC_RED,
     TRAFFIC_WIDTH,
@@ -22,8 +24,9 @@ class TrafficCar:
 
     @property
     def rect(self):
+        x = lane_center_at(self.lane, self.y)
         return pygame.Rect(
-            round(self.x - TRAFFIC_WIDTH / 2),
+            round(x - TRAFFIC_WIDTH / 2),
             round(self.y),
             TRAFFIC_WIDTH,
             TRAFFIC_HEIGHT,
@@ -34,34 +37,14 @@ class TrafficCar:
         self.y += (115.0 + player_speed * 0.34) * delta_time
 
     def draw(self, surface):
-        body = self.rect
-        pygame.draw.rect(surface, self.color, body, border_radius=8)
-        pygame.draw.rect(surface, (112, 37, 39), body, width=2, border_radius=8)
-        pygame.draw.rect(
+        draw_car(
             surface,
-            (177, 220, 226),
-            (body.x + 7, body.y + 12, body.width - 14, 17),
-            border_radius=5,
+            lane_center_at(self.lane, self.y),
+            self.y,
+            TRAFFIC_WIDTH,
+            TRAFFIC_HEIGHT,
+            self.color,
         )
-        pygame.draw.rect(
-            surface,
-            (137, 45, 47),
-            (body.x + 8, body.y + 42, body.width - 16, 14),
-            border_radius=4,
-        )
-        for wheel_y in (body.y + 12, body.bottom - 20):
-            pygame.draw.rect(
-                surface,
-                (25, 28, 31),
-                (body.left - 3, wheel_y, 6, 14),
-                border_radius=2,
-            )
-            pygame.draw.rect(
-                surface,
-                (25, 28, 31),
-                (body.right - 3, wheel_y, 6, 14),
-                border_radius=2,
-            )
 
 
 class Traffic:
@@ -106,3 +89,14 @@ class Traffic:
     def draw(self, surface):
         for car in self.cars:
             car.draw(surface)
+
+
+def lane_center_at(lane, y):
+    from settings import ROAD_LEFT, ROAD_RIGHT, HORIZON_Y
+
+    road_progress = max(
+        0.0, min(1.0, (y - HORIZON_Y) / (LOGICAL_HEIGHT - HORIZON_Y))
+    )
+    road_width = (ROAD_RIGHT - ROAD_LEFT) * (0.66 + road_progress * 0.34)
+    left = LOGICAL_WIDTH / 2 - road_width / 2
+    return left + road_width * (lane + 0.5) / 3

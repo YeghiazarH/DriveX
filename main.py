@@ -10,6 +10,7 @@ from settings import FPS, GRASS, LOGICAL_HEIGHT, LOGICAL_WIDTH
 
 
 async def main():
+    pygame.mixer.pre_init(frequency=22050, size=-16, channels=1, buffer=512)
     pygame.init()
     pygame.display.set_caption("DriveX - Infinite Highway")
     window = pygame.display.set_mode(
@@ -38,6 +39,7 @@ async def main():
                 viewport = Viewport.fit(window.get_size())
             action = controls.handle_event(event, viewport, game.game_over)
             if action == "restart":
+                game.sounds.play("restart")
                 game.reset()
             elif action:
                 game.handle_action(action)

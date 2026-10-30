@@ -2,6 +2,7 @@
 
 import pygame
 
+from car_drawing import draw_car
 from settings import (
     ACCELERATION_STEP,
     BRAKE_STEP,
@@ -50,43 +51,12 @@ class Player:
         self.x += (target_x - self.x) * blend
 
     def draw(self, surface):
-        body = self.rect
-        pygame.draw.rect(surface, PLAYER_GREEN, body, border_radius=9)
-        pygame.draw.rect(surface, (20, 110, 58), body, width=2, border_radius=9)
-        pygame.draw.rect(
+        draw_car(
             surface,
-            (180, 226, 232),
-            (body.x + 7, body.y + 13, body.width - 14, 17),
-            border_radius=5,
-        )
-        pygame.draw.rect(
-            surface,
-            (32, 127, 79),
-            (body.x + 8, body.y + 39, body.width - 16, 15),
-            border_radius=4,
-        )
-        for wheel_y in (body.y + 12, body.bottom - 20):
-            pygame.draw.rect(
-                surface,
-                (25, 28, 31),
-                (body.left - 3, wheel_y, 6, 14),
-                border_radius=2,
-            )
-            pygame.draw.rect(
-                surface,
-                (25, 28, 31),
-                (body.right - 3, wheel_y, 6, 14),
-                border_radius=2,
-            )
-        pygame.draw.rect(
-            surface,
-            (255, 235, 153),
-            (body.x + 5, body.y + 3, 9, 4),
-            border_radius=2,
-        )
-        pygame.draw.rect(
-            surface,
-            (255, 235, 153),
-            (body.right - 14, body.y + 3, 9, 4),
-            border_radius=2,
+            self.x,
+            PLAYER_Y,
+            PLAYER_WIDTH,
+            PLAYER_HEIGHT,
+            PLAYER_GREEN,
+            player=True,
         )

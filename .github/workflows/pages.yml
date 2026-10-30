@@ -27,7 +27,7 @@ jobs:
       - name: Install game and web-build dependencies
         run: python -m pip install -r requirements.txt
       - name: Build static web game
-        run: python -m pygbag --build --width 400 --height 600 --ume_block 0 .
+        run: python -m pygbag --build --width 402 --height 874 --ume_block 0 .
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
