@@ -61,24 +61,14 @@ class TrafficCar:
 class Traffic:
     def __init__(self):
         self.cars = []
-        self.spawn_timer = 0.6
+        self.spawn_timer = 1.8
 
     def reset(self):
         self.cars.clear()
-        self.spawn_timer = 0.6
+        self.spawn_timer = 1.8
 
-    def _spawn_car(self):
+    def _spawn_car(self, lane):
         spawn_y = HORIZON_Y - TRAFFIC_HEIGHT * 0.05
-        open_lanes = [
-            lane for lane in range(LANE_COUNT)
-            if all(
-                car.lane != lane or car.y > spawn_y + TRAFFIC_HEIGHT * 1.1
-                for car in self.cars
-            )
-        ]
-        if not open_lanes:
-            return
-        lane = random.choice(open_lanes)
         variations = (
             TRAFFIC_RED,
             (205, 93, 59),
@@ -90,11 +80,29 @@ class Traffic:
         )
         self.cars.append(TrafficCar(lane, spawn_y, random.choice(variations)))
 
+    def _spawn_wave(self):
+        spawn_y = HORIZON_Y - TRAFFIC_HEIGHT * 0.05
+        occupied = {
+            car.lane
+            for car in self.cars
+            if car.y < spawn_y + TRAFFIC_HEIGHT * 2.2
+        }
+        open_lanes = [lane for lane in range(LANE_COUNT) if lane not in occupied]
+        if len(open_lanes) < 2:
+            return
+
+        first_lane = random.choice(open_lanes)
+        self._spawn_car(first_lane)
+
+        remaining_lanes = [lane for lane in open_lanes if lane != first_lane]
+        if len(open_lanes) == LANE_COUNT and random.random() < 0.22:
+            self._spawn_car(random.choice(remaining_lanes))
+
     def update(self, delta_time, player_speed):
         self.spawn_timer -= delta_time
         if self.spawn_timer <= 0:
-            self._spawn_car()
-            self.spawn_timer = random.uniform(0.7, 1.15)
+            self._spawn_wave()
+            self.spawn_timer = random.uniform(2.4, 3.2)
 
         for car in self.cars:
             car.update(delta_time, player_speed)

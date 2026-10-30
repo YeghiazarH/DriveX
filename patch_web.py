@@ -13,7 +13,14 @@ html, body {
     height: 100%;
     margin: 0;
     overflow: hidden;
-    background: #183022;
+    background: #ffffff !important;
+}
+#infobox {
+    color: #111111 !important;
+    background: #ffffff !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    font-family: Arial, sans-serif !important;
 }
 #canvas.emscripten {
     position: fixed !important;

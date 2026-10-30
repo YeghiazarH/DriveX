@@ -28,12 +28,6 @@ def draw_car(
     w, h = width, height
     radius = w * 0.19
 
-    pygame.draw.ellipse(
-        surface,
-        (19, 25, 28),
-        (round(x - w * 0.06), round(y + h * 0.07), round(w * 1.12), round(h * 0.91)),
-    )
-
     tire_color = (20, 23, 26)
     for tire_y in (y + h * 0.2, y + h * 0.68):
         for tire_x in (x + w * 0.015, x + w * 0.805):
