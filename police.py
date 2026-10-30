@@ -6,10 +6,10 @@ from car_drawing import draw_car
 from settings import (
     PLAYER_HEIGHT,
     PLAYER_Y,
-    ROAD_LEFT,
-    ROAD_RIGHT,
+    LOGICAL_WIDTH,
     TRAFFIC_HEIGHT,
     TRAFFIC_WIDTH,
+    vehicle_scale_at,
 )
 
 
@@ -18,9 +18,9 @@ class PoliceChase:
         self.reset()
 
     def reset(self):
-        self.gap = TRAFFIC_HEIGHT * 0.62
+        self.gap = TRAFFIC_HEIGHT * 0.18
         self.elapsed = 0.0
-        self.x = (ROAD_LEFT + ROAD_RIGHT) / 2
+        self.x = LOGICAL_WIDTH / 2
         self.target_lane = 1
 
     @property
@@ -29,11 +29,12 @@ class PoliceChase:
 
     @property
     def rect(self):
+        scale = vehicle_scale_at(self.y)
         return pygame.Rect(
-            round(self.x - TRAFFIC_WIDTH / 2),
-            round(self.y),
-            round(TRAFFIC_WIDTH),
-            round(TRAFFIC_HEIGHT),
+            round(self.x - TRAFFIC_WIDTH * scale * 0.39),
+            round(self.y + TRAFFIC_HEIGHT * scale * 0.05),
+            round(TRAFFIC_WIDTH * scale * 0.78),
+            round(TRAFFIC_HEIGHT * scale * 0.9),
         )
 
     def update(self, delta_time, player):
@@ -41,47 +42,23 @@ class PoliceChase:
         self.target_lane = player.lane
         target_x = player.x
         self.x += (target_x - self.x) * min(1.0, delta_time * 2.8)
-        closing_speed = TRAFFIC_HEIGHT * (0.008 + min(self.elapsed / 120, 0.006))
+        closing_speed = TRAFFIC_HEIGHT * (0.0045 + min(self.elapsed / 120, 0.003))
         self.gap = max(0.0, self.gap - closing_speed * delta_time)
 
     def caught_player(self):
-        return self.gap <= TRAFFIC_HEIGHT * 0.1
+        return self.gap <= 0
 
     def draw(self, surface):
         # Alternate emergency lights independently from the game frame rate.
         phase = int(self.elapsed * 8) % 2
-        blue, red = (45, 122, 255), (255, 54, 53)
+        scale = vehicle_scale_at(self.y)
         draw_car(
             surface,
             self.x,
             self.y,
-            TRAFFIC_WIDTH,
-            TRAFFIC_HEIGHT,
+            TRAFFIC_WIDTH * scale,
+            TRAFFIC_HEIGHT * scale,
             (219, 225, 228),
-        )
-        center_y = round(self.y + TRAFFIC_HEIGHT * 0.23)
-        bar_width = TRAFFIC_WIDTH * 0.34
-        bar_height = max(5, round(TRAFFIC_HEIGHT * 0.035))
-        left_color, right_color = (blue, red) if phase == 0 else (red, blue)
-        pygame.draw.rect(
-            surface,
-            left_color,
-            (
-                round(self.x - bar_width),
-                center_y,
-                round(bar_width),
-                bar_height,
-            ),
-            border_radius=bar_height // 2,
-        )
-        pygame.draw.rect(
-            surface,
-            right_color,
-            (
-                round(self.x),
-                center_y,
-                round(bar_width),
-                bar_height,
-            ),
-            border_radius=bar_height // 2,
+            police=True,
+            police_phase=phase,
         )

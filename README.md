@@ -1,6 +1,6 @@
 # DriveX
 
-DriveX is an infinite, portrait-view highway driving game written in Python with Pygame CE. The 900 × 1956 logical canvas uses the same tall aspect ratio as an iPhone 16 display (402 × 874 CSS pixels). The web page keeps the game centered and full-height on phones, while desktop browsers get a centered portrait game view. Detailed cars, road scenery, and sound effects are generated in code; no image or audio assets are needed.
+DriveX is an infinite, portrait-view highway driving game written in Python with Pygame CE. The 900 × 1956 logical canvas uses the same tall aspect ratio as an iPhone 16 display (402 × 874 CSS pixels). The web page keeps the game centered and full-height on phones, while desktop browsers get a centered portrait game view. Cars scale into the distance and feature distinct paint colors; roadside trees, grass, reflectors, and lane markings scroll with the road to reinforce forward motion. Detailed cars, scenery, and sound effects are generated in code; no image or audio assets are needed.
 
 ## Controls
 

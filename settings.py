@@ -45,3 +45,23 @@ ACTION_BUTTON_RECT = (
     LOGICAL_WIDTH * 0.56,
     LOGICAL_HEIGHT * 0.09,
 )
+
+
+def road_progress_at(y):
+    return max(0.0, min(1.0, (y - HORIZON_Y) / (LOGICAL_HEIGHT - HORIZON_Y)))
+
+
+def road_bounds_at(y):
+    progress = road_progress_at(y)
+    width = ROAD_WIDTH * (0.66 + progress * 0.34)
+    center = LOGICAL_WIDTH / 2
+    return center - width / 2, center + width / 2, progress
+
+
+def lane_center_at(lane, y):
+    left, right, _ = road_bounds_at(y)
+    return left + (right - left) * (lane + 0.5) / LANE_COUNT
+
+
+def vehicle_scale_at(y):
+    return 0.52 + road_progress_at(y) * 0.48

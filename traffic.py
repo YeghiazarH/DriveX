@@ -10,12 +10,11 @@ from settings import (
     LANE_COUNT,
     HORIZON_Y,
     LOGICAL_HEIGHT,
-    LOGICAL_WIDTH,
-    ROAD_LEFT,
-    ROAD_RIGHT,
     TRAFFIC_HEIGHT,
     TRAFFIC_RED,
     TRAFFIC_WIDTH,
+    lane_center_at,
+    vehicle_scale_at,
 )
 
 
@@ -25,15 +24,22 @@ class TrafficCar:
         self.x = LANE_CENTERS[lane]
         self.y = float(y)
         self.color = color
+        self.width_scale, self.height_scale = random.choice(
+            ((0.94, 0.88), (1.0, 1.0), (0.96, 1.1), (1.05, 0.96))
+        )
 
     @property
     def rect(self):
-        x = lane_center_at(self.lane, self.y)
+        scale = vehicle_scale_at(self.y)
+        car_width = TRAFFIC_WIDTH * scale * self.width_scale
+        car_height = TRAFFIC_HEIGHT * scale * self.height_scale
+        width = car_width * 0.78
+        height = car_height * 0.9
         return pygame.Rect(
-            round(x - TRAFFIC_WIDTH / 2),
-            round(self.y),
-            TRAFFIC_WIDTH,
-            TRAFFIC_HEIGHT,
+            round(lane_center_at(self.lane, self.y) - width / 2),
+            round(self.y + (car_height - height) / 2),
+            round(width),
+            round(height),
         )
 
     def update(self, delta_time, player_speed):
@@ -41,12 +47,13 @@ class TrafficCar:
         self.y += (115.0 + player_speed * 0.34) * delta_time
 
     def draw(self, surface):
+        scale = vehicle_scale_at(self.y)
         draw_car(
             surface,
             lane_center_at(self.lane, self.y),
             self.y,
-            TRAFFIC_WIDTH,
-            TRAFFIC_HEIGHT,
+            TRAFFIC_WIDTH * scale * self.width_scale,
+            TRAFFIC_HEIGHT * scale * self.height_scale,
             self.color,
         )
 
@@ -61,20 +68,27 @@ class Traffic:
         self.spawn_timer = 0.6
 
     def _spawn_car(self):
+        spawn_y = HORIZON_Y - TRAFFIC_HEIGHT * 0.05
         open_lanes = [
             lane for lane in range(LANE_COUNT)
-            if all(car.lane != lane or car.y > 150 for car in self.cars)
+            if all(
+                car.lane != lane or car.y > spawn_y + TRAFFIC_HEIGHT * 1.1
+                for car in self.cars
+            )
         ]
         if not open_lanes:
             return
         lane = random.choice(open_lanes)
         variations = (
             TRAFFIC_RED,
-            (220, 91, 52),
-            (190, 62, 79),
-            (205, 72, 55),
+            (205, 93, 59),
+            (57, 111, 157),
+            (157, 174, 177),
+            (194, 146, 57),
+            (47, 126, 111),
+            (122, 79, 104),
         )
-        self.cars.append(TrafficCar(lane, -TRAFFIC_HEIGHT, random.choice(variations)))
+        self.cars.append(TrafficCar(lane, spawn_y, random.choice(variations)))
 
     def update(self, delta_time, player_speed):
         self.spawn_timer -= delta_time
@@ -92,12 +106,3 @@ class Traffic:
     def draw(self, surface):
         for car in self.cars:
             car.draw(surface)
-
-
-def lane_center_at(lane, y):
-    road_progress = max(
-        0.0, min(1.0, (y - HORIZON_Y) / (LOGICAL_HEIGHT - HORIZON_Y))
-    )
-    road_width = (ROAD_RIGHT - ROAD_LEFT) * (0.66 + road_progress * 0.34)
-    left = LOGICAL_WIDTH / 2 - road_width / 2
-    return left + road_width * (lane + 0.5) / LANE_COUNT
