@@ -76,15 +76,15 @@ class InputHandler:
 
     def handle_event(self, event, viewport, game_state="playing"):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # SDL may emit both finger and synthetic mouse events for one touch.
-            if getattr(event, "touch", False):
+            # Prefer finger events when SDL also emits a synthetic touch mouse event.
+            if getattr(event, "touch", False) and self._finger_id is not None:
                 return None
             self._start = viewport.to_logical(event.pos)
             self._finger_id = None
             return None
 
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            if getattr(event, "touch", False):
+            if getattr(event, "touch", False) and self._finger_id is not None:
                 return None
             start = self._start
             self.reset()
